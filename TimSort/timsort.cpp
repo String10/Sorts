@@ -21,7 +21,6 @@ private:
 	size_t minRunLength(size_t);
 	void mergeRun(T [], const Run &, const Run &, Comparer);
 	size_t upperbound(const T [], const T &, size_t, size_t, Comparer);
-	size_t upperboundDec(const T [], const T &, size_t, size_t, Comparer);
 	void insertSort(T [], size_t, Comparer);
 };
 
@@ -61,15 +60,14 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 	}
 
 	/* If len <= 64, just run insertSort. */
-	// if(len <= (1 << 6)) {
-	// 	insertSort(arr, len, cmp);
-	// 	return;
-	// }
+	if(len <= (1 << 6)) {
+		insertSort(arr, len, cmp);
+		return;
+	}
 
 	/* Slice the arr to different Run. */
 	std::stack <Run> sta;
-	// size_t min_run_len = minRunLength(len);
-	size_t min_run_len = 4;
+	size_t min_run_len = minRunLength(len);
 	for(size_t i = 0, j; i < len; i = j + 1) {
 		j = i;
 		if(j + 1 >= len) {
@@ -97,13 +95,6 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 						arr[k] = arr[k - 1];
 					}
 					arr[pos] = temp;
-					// else {
-					// 	pos = upperboundDec(arr, arr[j + 1], i, j, cmp), temp = arr[j + 1];
-					// 	for(size_t k = j + 1; k > pos; k--) {
-					// 		arr[k] = arr[k - 1];
-					// 	}
-					// 	arr[pos] = temp;
-					// }
 				}
 				j++;
 			}
@@ -201,30 +192,10 @@ template <typename T>
 void TimSort<T>::mergeRun(T arr[], const Run &a, const Run &b, Comparer cmp) {
 	/* TODO: GALLOP Mode. */
 
-	/* TODO: Copy-less-Method: 
+	/* Copy-less-Method: 
 	*  If a.length <= b.length, then copy a to buf and merge from small end.
 	*  If a.length > b.length, then copy b to buf and merge from big end.
 	*/
-
-	// size_t i = a.first, j = b.first, k = a.first;
-	// while(i <= a.second || j <= b.second) {
-	// 	if(i > a.second) {
-	// 		buf[k++] = arr[j++];
-	// 		continue;
-	// 	}
-	// 	if(j > b.second) {
-	// 		buf[k++] = arr[i++];
-	// 	}
-	// 	if(cmp(arr[j], arr[i])) {
-	// 		buf[k++] = arr[j++];
-	// 	}
-	// 	else {
-	// 		buf[k++] = arr[i++];
-	// 	}
-	// }
-	// for(k = a.first; k <= b.second; k++) {
-	// 	arr[k] = buf[k];
-	// }
 
 	size_t i, j, k;
 	if(a.second - a.first + 1 <= b.second - b.first + 1) {
@@ -284,21 +255,6 @@ typename TimSort<T>::size_t TimSort<T>::upperbound(const T arr[], const T &val, 
 		}
 	}
 	return cmp(val, arr[l]) ? l : (l + 1);
-}
-
-template <typename T>
-typename TimSort<T>::size_t TimSort<T>::upperboundDec(const T arr[], const T &val, size_t l, size_t r, Comparer cmp) {
-	size_t mid;
-	while(l < r) {
-		mid = (l + r) / 2;
-		if(cmp(arr[mid], val)) {
-			r = mid;
-		}
-		else {
-			l = mid + 1;
-		}
-	}
-	return cmp(arr[l], val) ? l : (l + 1);
 }
 
 template <typename T>
