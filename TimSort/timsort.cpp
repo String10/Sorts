@@ -192,7 +192,7 @@ void TimSort<T>::mergeRun(T [], const Run &a, const Run &b, Comparer cmp) {
 
 	/* TODO: Less memory use method. */
 
-
+	/* TODO: A simple merge to test slicing. */
 }
 
 template <typename T>
