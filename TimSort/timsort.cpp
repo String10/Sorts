@@ -19,7 +19,9 @@ private:
 	void swap(T &, T&);
 	void reverse(T [], size_t, size_t);
 	size_t minRunLength(size_t);
+	void mergeRun(T [], const Run &, const Run &, Comparer);
 	size_t upperbound(const T [], const T &, size_t, size_t, Comparer);
+	size_t upperboundDec(const T [], const T &, size_t, size_t, Comparer);
 	void insertSort(T [], size_t, Comparer);
 };
 
@@ -66,9 +68,9 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 	/* TODO: Slice the arr to different Run. */
 	std::stack <Run> sta;
 	size_t min_run_len = minRunLength(len);
-	for(size_t i = 0; i < len; ) {
-		size_t j = i + 1;
-		if(j >= len) {
+	for(size_t i = 0, j; i < len; i = j + 1) {
+		j = i;
+		if(j + 1 >= len) {
 			Run run = sta.top();
 			sta.pop();
 			size_t pos = upperbound(arr, arr[i], run.first, run.second, cmp);
@@ -80,13 +82,10 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 			sta.push({ run.first, i });
 		}
 		else {
-			bool is_incr = !cmp(arr[j], arr[i]);
+			bool is_incr = !cmp(arr[j + 1], arr[j]);
 			size_t pos;
 			while(j - i + 1 <= min_run_len) {
-				if(is_incr && !cmp(arr[j + 1], arr[j])) {
-					j++;
-				}
-				else {
+				if(!(is_incr && !cmp(arr[j + 1], arr[j]))) {
 					if(is_incr) {
 						pos = upperbound(arr, arr[j + 1], i, j, cmp), temp = arr[j + 1];
 						for(size_t k = j + 1; k > pos; k--) {
@@ -95,16 +94,67 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 						arr[pos] = temp;
 					}
 					else {
-						/* TODO: Add the case of strict descend run. */
+						pos = upperboundDec(arr, arr[j + 1], i, j, cmp), temp = arr[j + 1];
+						for(size_t k = j + 1; k > pos; k--) {
+							arr[k] = arr[k - 1];
+						}
+						arr[pos] = temp;
 					}
 				}
+				j++;
 			}
+			if(!is_incr) {
+				reverse(arr, i, j);
+			}
+			sta.push({ i, j });
+		}
+		Run x, y, z;
+		size_t x_len, y_len, z_len;
+		while(sta.size() >= 3) {
+			x = sta.top(), sta.pop(), x_len = x.second - x.first + 1;
+			y = sta.top(), sta.pop(), y_len = y.second - y.first + 1;
+			z = sta.top(), sta.pop(), z_len = z.second - z.first + 1;
+			/* Need to meet: z.length > x.length + y.length, or merge(shorter one, y) */
+			/* Need to meet: y.length > x.length, or merge(x, y) */
+
+			if(z_len <= x_len + y_len) {
+				if(z_len <= x_len) {
+					mergeRun(arr, z, y, cmp);
+					sta.push({ z.first, y.second });
+					sta.push(x);
+				}
+				else {
+					mergeRun(arr, y, x, cmp);
+					sta.push(z);
+					sta.push({ y.first, x.second });
+				}
+				continue;
+			}
+
+			if(y_len <= x_len) {
+				mergeRun(arr, y, x, cmp);
+				sta.push(z);
+				sta.push({ y.first, x.second });
+				continue;
+			}
+
+			sta.push(z), sta.push(y), sta.push(x);
+			break;
+		}
+		while(sta.size() >= 2) {
+			x = sta.top(), sta.pop(), x_len = x.second - x.first + 1;
+			y = sta.top(), sta.pop(), y_len = y.second - y.first + 1;
+
+			if(y_len <= x_len) {
+				mergeRun(arr, y, x, cmp);
+				sta.push({ y.first, x.second });
+				continue;
+			}
+
+			sta.push(y), sta.push(x);
+			break;
 		}
 	}
-
-	/* TODO: GALLOP Mode. */
-
-	/* TODO: Less memory use method. */
 }
 
 template <typename T>
@@ -137,6 +187,15 @@ typename TimSort<T>::size_t TimSort<T>::minRunLength(size_t len) {
 }
 
 template <typename T>
+void TimSort<T>::mergeRun(T [], const Run &a, const Run &b, Comparer cmp) {
+	/* TODO: GALLOP Mode. */
+
+	/* TODO: Less memory use method. */
+
+
+}
+
+template <typename T>
 typename TimSort<T>::size_t TimSort<T>::upperbound(const T arr[], const T &val, size_t l, size_t r, Comparer cmp) {
 	size_t mid;
 	while(l < r) {
@@ -149,6 +208,21 @@ typename TimSort<T>::size_t TimSort<T>::upperbound(const T arr[], const T &val, 
 		}
 	}
 	return cmp(val, arr[l]) ? l : (l + 1);
+}
+
+template <typename T>
+typename TimSort<T>::size_t TimSort<T>::upperboundDec(const T arr[], const T &val, size_t l, size_t r, Comparer cmp) {
+	size_t mid;
+	while(l < r) {
+		mid = (l + r) / 2;
+		if(cmp(arr[mid], val)) {
+			r = mid;
+		}
+		else {
+			l = mid + 1;
+		}
+	}
+	return cmp(arr[l], val) ? l : (l + 1);
 }
 
 template <typename T>
