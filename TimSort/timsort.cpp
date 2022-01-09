@@ -1,18 +1,23 @@
 #pragma once
 
+#include <utility>
+#include <stack>
+
 template <typename T>
 class TimSort {
 	using size_t = unsigned long long;
 	using Comparer = bool(*)(const T &, const T &);
+	using Run = std::pair <size_t, size_t>;
 public:
 	TimSort();
 	~TimSort();
 	void sort(T [], size_t, Comparer=def_cmp);
 private:
-	T temp, *arr_helper;
+	T temp, *buf;
 	size_t max_size;
 	static bool def_cmp(const T &, const T &);
 	void swap(T &, T&);
+	void reverse(T [], size_t, size_t);
 	size_t minRunLength(size_t);
 	size_t upperbound(const T [], const T &, size_t, size_t, Comparer);
 	void insertSort(T [], size_t, Comparer);
@@ -21,12 +26,12 @@ private:
 template <typename T>
 TimSort<T>::TimSort() {
 	max_size = (1 << 9);
-	arr_helper = new T[max_size];
+	buf = new T[max_size];
 }
 
 template <typename T>
 TimSort<T>::~TimSort() {
-	delete[] arr_helper;
+	delete[] buf;
 	max_size = 0;
 }
 
@@ -36,6 +41,8 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 		return;
 	}
 
+	/* Resize the buf. TODO: maybe it can cost less memory. */
+	bool resized = false;
 	while(max_size <= len) {
 		if(max_size == 0) {
 			max_size = 1;
@@ -43,6 +50,11 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 		else {
 			max_size <<= 1;
 		}
+		resized = true;
+	}
+	if(resized) {
+		delete buf;
+		buf = new T[max_size];
 	}
 
 	/* If len <= 64, just run insertSort. */
@@ -51,7 +63,44 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 		return;
 	}
 
-	/* TODO: Slide the arr to different Run. */
+	/* TODO: Slice the arr to different Run. */
+	std::stack <Run> sta;
+	size_t min_run_len = minRunLength(len);
+	for(size_t i = 0; i < len; ) {
+		size_t j = i + 1;
+		if(j >= len) {
+			Run run = sta.top();
+			sta.pop();
+			size_t pos = upperbound(arr, arr[i], run.first, run.second, cmp);
+			temp = arr[i];
+			for(j = i; j > pos; j--) {
+				arr[j] = arr[j - 1];
+			}
+			arr[pos] = temp;
+			sta.push({ run.first, i });
+		}
+		else {
+			bool is_incr = !cmp(arr[j], arr[i]);
+			size_t pos;
+			while(j - i + 1 <= min_run_len) {
+				if(is_incr && !cmp(arr[j + 1], arr[j])) {
+					j++;
+				}
+				else {
+					if(is_incr) {
+						pos = upperbound(arr, arr[j + 1], i, j, cmp), temp = arr[j + 1];
+						for(size_t k = j + 1; k > pos; k--) {
+							arr[k] = arr[k - 1];
+						}
+						arr[pos] = temp;
+					}
+					else {
+						/* TODO: Add the case of strict descend run. */
+					}
+				}
+			}
+		}
+	}
 
 	/* TODO: GALLOP Mode. */
 
@@ -66,6 +115,14 @@ bool TimSort<T>::def_cmp(const T &a, const T &b) {
 template <typename T>
 void TimSort<T>::swap(T &a, T &b) {
 	temp = a, a = b, b = temp;
+}
+
+template <typename T>
+void TimSort<T>::reverse(T arr[], size_t l, size_t r) {
+	while(l < r) {
+		swap(arr[l], arr[r]);
+		l++, r--;
+	}
 }
 
 template <typename T>
