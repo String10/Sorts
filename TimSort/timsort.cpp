@@ -65,7 +65,7 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 		return;
 	}
 
-	/* TODO: Slice the arr to different Run. */
+	/* Slice the arr to different Run. */
 	std::stack <Run> sta;
 	size_t min_run_len = minRunLength(len);
 	for(size_t i = 0, j; i < len; i = j + 1) {
@@ -84,7 +84,7 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 		else {
 			bool is_incr = !cmp(arr[j + 1], arr[j]);
 			size_t pos;
-			while(j - i + 1 <= min_run_len) {
+			while(j + 1 < len && j - i + 1 <= min_run_len) {
 				if(!(is_incr && !cmp(arr[j + 1], arr[j]))) {
 					if(is_incr) {
 						pos = upperbound(arr, arr[j + 1], i, j, cmp), temp = arr[j + 1];
@@ -155,6 +155,13 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 			break;
 		}
 	}
+	Run run = sta.top();
+	sta.pop();
+	while(!sta.empty()) {
+		mergeRun(arr, sta.top(), run, cmp);
+		run.first = sta.top().first;
+		sta.pop();
+	}
 }
 
 template <typename T>
@@ -187,12 +194,30 @@ typename TimSort<T>::size_t TimSort<T>::minRunLength(size_t len) {
 }
 
 template <typename T>
-void TimSort<T>::mergeRun(T [], const Run &a, const Run &b, Comparer cmp) {
+void TimSort<T>::mergeRun(T arr[], const Run &a, const Run &b, Comparer cmp) {
 	/* TODO: GALLOP Mode. */
 
 	/* TODO: Less memory use method. */
 
-	/* TODO: A simple merge to test slicing. */
+	size_t i = a.first, j = b.first, k = a.first;
+	while(i <= a.second || j <= b.second) {
+		if(i > a.second) {
+			buf[k++] = arr[j++];
+			continue;
+		}
+		if(j > b.second) {
+			buf[k++] = arr[i++];
+		}
+		if(cmp(arr[j], arr[i])) {
+			buf[k++] = arr[j++];
+		}
+		else {
+			buf[k++] = arr[i++];
+		}
+	}
+	for(k = a.first; k <= b.second; k++) {
+		arr[k] = buf[k];
+	}
 }
 
 template <typename T>
