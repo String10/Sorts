@@ -20,6 +20,7 @@ private:
 	void reverse(T [], size_t, size_t);
 	size_t minRunLength(size_t);
 	void mergeRun(T [], const Run &, const Run &, Comparer);
+	size_t lowerbound(const T [], const T &, size_t, size_t, Comparer);
 	size_t upperbound(const T [], const T &, size_t, size_t, Comparer);
 	void insertSort(T [], size_t, Comparer);
 };
@@ -240,6 +241,21 @@ void TimSort<T>::mergeRun(T arr[], const Run &a, const Run &b, Comparer cmp) {
 			}
 		}
 	}
+}
+
+template <typename T>
+typename TimSort<T>::size_t TimSort<T>::lowerbound(const T arr[], const T &val, size_t l, size_t r, Comparer cmp) {
+	size_t mid;
+	while(l < r) {
+		mid = (l + r) / 2;
+		if(cmp(arr[mid], val)) {
+			l = mid + 1;
+		}
+		else {
+			r = mid;
+		}
+	}
+	return cmp(val, arr[l]) ? l : (l + 1);
 }
 
 template <typename T>
