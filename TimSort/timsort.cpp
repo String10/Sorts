@@ -19,7 +19,7 @@ private:
 	void swap(T &, T&);
 	void reverse(T [], size_t, size_t);
 	size_t minRunLength(size_t);
-	void mergeRun(T [], const Run &, const Run &, Comparer);
+	void mergeRun(T [], Run, Run, Comparer);
 	size_t lowerbound(const T [], const T &, size_t, size_t, Comparer);
 	size_t upperbound(const T [], const T &, size_t, size_t, Comparer);
 	void insertSort(T [], size_t, Comparer);
@@ -190,8 +190,16 @@ typename TimSort<T>::size_t TimSort<T>::minRunLength(size_t len) {
 }
 
 template <typename T>
-void TimSort<T>::mergeRun(T arr[], const Run &a, const Run &b, Comparer cmp) {
+void TimSort<T>::mergeRun(T arr[], Run a, Run b, Comparer cmp) {
 	/* TODO: GALLOP Mode. */
+
+	/* Shorten the length. */
+	if(!cmp(arr[b.first], arr[a.first])) {
+		a.first = upperbound(arr, arr[b.first], a.first, a.second, cmp);
+	}
+	if(!cmp(arr[b.second], arr[a.second])) {
+		b.second = lowerbound(arr, arr[a.second], b.first, b.second, cmp) - 1;
+	}
 
 	/* Copy-less-Method: 
 	*  If a.length <= b.length, then copy a to buf and merge from small end.
