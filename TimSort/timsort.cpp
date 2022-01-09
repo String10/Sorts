@@ -43,7 +43,8 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 		return;
 	}
 
-	/* Resize the buf. TODO: maybe it can cost less memory. */
+	/* Resize the buf. */
+	/* TODO: maybe it can cost less memory. */
 	bool resized = false;
 	while(max_size <= len) {
 		if(max_size == 0) {
@@ -60,14 +61,15 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 	}
 
 	/* If len <= 64, just run insertSort. */
-	if(len <= (1 << 6)) {
-		insertSort(arr, len, cmp);
-		return;
-	}
+	// if(len <= (1 << 6)) {
+	// 	insertSort(arr, len, cmp);
+	// 	return;
+	// }
 
 	/* Slice the arr to different Run. */
 	std::stack <Run> sta;
-	size_t min_run_len = minRunLength(len);
+	// size_t min_run_len = minRunLength(len);
+	size_t min_run_len = 4;
 	for(size_t i = 0, j; i < len; i = j + 1) {
 		j = i;
 		if(j + 1 >= len) {
@@ -85,21 +87,23 @@ void TimSort<T>::sort(T arr[], size_t len, Comparer cmp) {
 			bool is_incr = !cmp(arr[j + 1], arr[j]);
 			size_t pos;
 			while(j + 1 < len && j - i + 1 <= min_run_len) {
-				if(!(is_incr && !cmp(arr[j + 1], arr[j]))) {
-					if(is_incr) {
-						pos = upperbound(arr, arr[j + 1], i, j, cmp), temp = arr[j + 1];
-						for(size_t k = j + 1; k > pos; k--) {
-							arr[k] = arr[k - 1];
-						}
-						arr[pos] = temp;
+				if(is_incr ^ (!cmp(arr[j + 1], arr[j]))) {
+					if(!is_incr) {
+						reverse(arr, i, j);
+						is_incr = true;
 					}
-					else {
-						pos = upperboundDec(arr, arr[j + 1], i, j, cmp), temp = arr[j + 1];
-						for(size_t k = j + 1; k > pos; k--) {
-							arr[k] = arr[k - 1];
-						}
-						arr[pos] = temp;
+					pos = upperbound(arr, arr[j + 1], i, j, cmp), temp = arr[j + 1];
+					for(size_t k = j + 1; k > pos; k--) {
+						arr[k] = arr[k - 1];
 					}
+					arr[pos] = temp;
+					// else {
+					// 	pos = upperboundDec(arr, arr[j + 1], i, j, cmp), temp = arr[j + 1];
+					// 	for(size_t k = j + 1; k > pos; k--) {
+					// 		arr[k] = arr[k - 1];
+					// 	}
+					// 	arr[pos] = temp;
+					// }
 				}
 				j++;
 			}
@@ -197,26 +201,73 @@ template <typename T>
 void TimSort<T>::mergeRun(T arr[], const Run &a, const Run &b, Comparer cmp) {
 	/* TODO: GALLOP Mode. */
 
-	/* TODO: Less memory use method. */
+	/* TODO: Copy-less-Method: 
+	*  If a.length <= b.length, then copy a to buf and merge from small end.
+	*  If a.length > b.length, then copy b to buf and merge from big end.
+	*/
 
-	size_t i = a.first, j = b.first, k = a.first;
-	while(i <= a.second || j <= b.second) {
-		if(i > a.second) {
-			buf[k++] = arr[j++];
-			continue;
+	// size_t i = a.first, j = b.first, k = a.first;
+	// while(i <= a.second || j <= b.second) {
+	// 	if(i > a.second) {
+	// 		buf[k++] = arr[j++];
+	// 		continue;
+	// 	}
+	// 	if(j > b.second) {
+	// 		buf[k++] = arr[i++];
+	// 	}
+	// 	if(cmp(arr[j], arr[i])) {
+	// 		buf[k++] = arr[j++];
+	// 	}
+	// 	else {
+	// 		buf[k++] = arr[i++];
+	// 	}
+	// }
+	// for(k = a.first; k <= b.second; k++) {
+	// 	arr[k] = buf[k];
+	// }
+
+	size_t i, j, k;
+	if(a.second - a.first + 1 <= b.second - b.first + 1) {
+		for(i = a.first; i <= a.second; i++) {
+			buf[i] = arr[i];
 		}
-		if(j > b.second) {
-			buf[k++] = arr[i++];
-		}
-		if(cmp(arr[j], arr[i])) {
-			buf[k++] = arr[j++];
-		}
-		else {
-			buf[k++] = arr[i++];
+		i = a.first, j = b.first, k = a.first;
+		while(i <= a.second || j <= b.second) {
+			if(i > a.second) {
+				break;
+			}
+			if(j > b.second) {
+				arr[k++] = buf[i++];
+				continue;
+			}
+			if(cmp(arr[j], buf[i])) {
+				arr[k++] = arr[j++];
+			}
+			else {
+				arr[k++] = buf[i++];
+			}
 		}
 	}
-	for(k = a.first; k <= b.second; k++) {
-		arr[k] = buf[k];
+	else {
+		for(j = b.first; j <= b.second; j++) {
+			buf[j] = arr[j];
+		}
+		i = a.second, j = b.second, k = b.second;
+		while(i >= a.first || j >= b.first) {
+			if(j < b.first) {
+				break;
+			}
+			if(i < a.first) {
+				arr[k--] = buf[j--];
+				continue;
+			}
+			if(cmp(buf[j], arr[i])) {
+				arr[k--] = arr[i--];
+			}
+			else {
+				arr[k--] = buf[j--];
+			}
+		}
 	}
 }
 
