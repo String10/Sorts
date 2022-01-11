@@ -191,8 +191,6 @@ typename TimSort<T>::size_t TimSort<T>::minRunLength(size_t len) {
 
 template <typename T>
 void TimSort<T>::mergeRun(T arr[], Run a, Run b, Comparer cmp) {
-	/* TODO: GALLOP Mode. */
-
 	/* Shorten the length. */
 	if(!cmp(arr[b.first], arr[a.first])) {
 		a.first = upperbound(arr, arr[b.first], a.first, a.second, cmp);
@@ -209,6 +207,7 @@ void TimSort<T>::mergeRun(T arr[], Run a, Run b, Comparer cmp) {
 	size_t i, j, k;
 	static const size_t min_gallop = 7;
 	if(a.second - a.first + 1 <= b.second - b.first + 1) {
+		/* TODO: Maybe std::copy can has better performance. */
 		for(i = a.first; i <= a.second; i++) {
 			buf[i] = arr[i];
 		}
@@ -222,23 +221,37 @@ void TimSort<T>::mergeRun(T arr[], Run a, Run b, Comparer cmp) {
 				continue;
 			}
 			if(cmp(arr[j], buf[i])) {
+				/* TODO: GALLOP Mode. */
 				arr[k++] = arr[j++];
 			}
 			else {
 				if(i + min_gallop - 1 <= a.second && !cmp(arr[j], buf[i + min_gallop - 1])) {
 					/* GALLOP Mode */
-					/* Exponential Search */
-					size_t gallop = min_gallop, nxt_i;
+					/* Exponential Search: 
+					*  Find a interval (2^k - 1, 2^(k+1) - 1) then run binary search.
+					*/
+					size_t gallop = min_gallop, delta = min_gallop + 1, l, r;
 					while(i + gallop - 1 <= a.second && !cmp(arr[j], buf[i + gallop - 1])) {
-						gallop = ((gallop + 1) << 1) - 1;
+						l = i + gallop, gallop += delta, delta <<= 1;
 					}
-					nxt_i = upperbound(buf, arr[j], 
-									   i + ((gallop + 1) >> 1), 
-									   (i + gallop - 1 <= a.second ? i + gallop - 1 : a.second),
-									   cmp);
-					while(i < nxt_i) {
-						arr[k++] = buf[i++];
+					r = (i + gallop - 1 > a.second ? a.second : i + gallop - 1);
+					while(l < r) {
+						size_t mid = (l + r) / 2;
+						if(!cmp(arr[j], buf[mid])) {
+							l = mid + 1;
+						}
+						else {
+							r = mid;
+						}
 					}
+					if(!cmp(arr[j], buf[r])) {
+						r++;
+					}
+					// while(i < r) {
+					// 	arr[k++] = buf[i++];
+					// }
+					std::copy(buf + i, buf + r, arr + k);
+					k += r - i, i = r;
 				}
 				else {
 					arr[k++] = buf[i++];
@@ -247,6 +260,7 @@ void TimSort<T>::mergeRun(T arr[], Run a, Run b, Comparer cmp) {
 		}
 	}
 	else {
+		/* TODO: Maybe std::copy can has better performance. */
 		for(j = b.first; j <= b.second; j++) {
 			buf[j] = arr[j];
 		}
@@ -260,9 +274,11 @@ void TimSort<T>::mergeRun(T arr[], Run a, Run b, Comparer cmp) {
 				continue;
 			}
 			if(cmp(buf[j], arr[i])) {
+				/* TODO: GALLOP Mode. */
 				arr[k--] = arr[i--];
 			}
 			else {
+				/* TODO: GALLOP Mode. */
 				arr[k--] = buf[j--];
 			}
 		}
