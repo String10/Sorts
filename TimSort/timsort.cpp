@@ -207,6 +207,7 @@ void TimSort<T>::mergeRun(T arr[], Run a, Run b, Comparer cmp) {
 	*/
 
 	size_t i, j, k;
+	static const size_t min_gallop = 7;
 	if(a.second - a.first + 1 <= b.second - b.first + 1) {
 		for(i = a.first; i <= a.second; i++) {
 			buf[i] = arr[i];
@@ -224,7 +225,24 @@ void TimSort<T>::mergeRun(T arr[], Run a, Run b, Comparer cmp) {
 				arr[k++] = arr[j++];
 			}
 			else {
-				arr[k++] = buf[i++];
+				if(i + min_gallop - 1 <= a.second && !cmp(arr[j], buf[i + min_gallop - 1])) {
+					/* GALLOP Mode */
+					/* Exponential Search */
+					size_t gallop = min_gallop, nxt_i;
+					while(i + gallop - 1 <= a.second && !cmp(arr[j], buf[i + gallop - 1])) {
+						gallop = ((gallop + 1) << 1) - 1;
+					}
+					nxt_i = upperbound(buf, arr[j], 
+									   i + ((gallop + 1) >> 1), 
+									   (i + gallop - 1 <= a.second ? i + gallop - 1 : a.second),
+									   cmp);
+					while(i < nxt_i) {
+						arr[k++] = buf[i++];
+					}
+				}
+				else {
+					arr[k++] = buf[i++];
+				}
 			}
 		}
 	}
